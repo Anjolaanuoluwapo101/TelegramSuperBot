@@ -54,7 +54,7 @@ def handle_messages(update):
     elif 'my_chat_member' in update:
         output(update,4)
         TelegramBot.sendMessage(update['my_chat_member']['chat']['id'], "Bot's status has been updated.")
-        #once chat member status is update.....another message is sent to the group or channel "bla bla has joined th gc....something like that"
+        #once chat member status is update.....another message is sent to the group or channel "bla bla has joined the gc....something like that"
    
     #handle channel post,usually only admins with privileges can send channel post
     elif 'channel_post' in update:
@@ -64,9 +64,10 @@ def handle_messages(update):
         #gain access to the channel post itself
         #post may be a normal message 
         if 'text' in update['channel_post']:
-            
+            #do something to the text...such as check for banned words etc.
         #may be a reply to a channel post
-        else:
+        elif 'reply_to_message' in update['channel_post']:
+            #do something to a reply to post.....
             
             
     else:
