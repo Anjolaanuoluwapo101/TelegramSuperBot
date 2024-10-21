@@ -20,7 +20,9 @@ def handle_messages(update):
             if chat_type == 'private':
                 TelegramBot.sendMessage(chat_id,"This is a private chat.")
                 
-            #check if there is a new member added
+            #check if there is a new member added....
+            #this only applies to Telegram Groups,Channels arre made to keep the identities of their members safe,so my bot doesn't know
+            #when a person is added,remove, made or unmade an admin in a Channel.
             elif 'new_chat_member' in update['message']:
                 new_member_id = update['message']['new_chat_member']['id']
                 new_member_username = update['message']['new_chat_member'].get('username')
@@ -53,7 +55,12 @@ def handle_messages(update):
     # Handle TelegramBot's  member status updates
     elif 'my_chat_member' in update:
         output(update,4)
-        TelegramBot.sendMessage(update['my_chat_member']['chat']['id'], "Bot's status has been updated.")
+        if update['my_chat_member']['chat']['type'] == 'channel':
+            # update = json.loads(update)
+            if  check_key_exists(update,'new_chat_member'):
+                print(check_key_exists(update,'new_chat_member',True))
+        # output(update,4)
+        # TelegramBot.sendMessage(update['my_chat_member']['chat']['id'], "Bot's status has been updated.")
         #once chat member status is update.....another message is sent to the group or channel "bla bla has joined the gc....something like that"
    
     #handle channel post,usually only admins with privileges can send channel post
@@ -65,10 +72,12 @@ def handle_messages(update):
         #post may be a normal message 
         if 'text' in update['channel_post']:
             #do something to the text...such as check for banned words etc.
+            print('text was sent')
+            
         #may be a reply to a channel post
         elif 'reply_to_message' in update['channel_post']:
             #do something to a reply to post.....
-            
+            print('reply to text')
             
     else:
         # Handle other types of updates or ignore them
@@ -78,6 +87,29 @@ def handle_messages(update):
 def output(data,i):
     output = json.dumps(data,indent=i)
     print(output)
+    
+def check_key_exists(data, key, getValue=False):
+    if isinstance(data, dict):
+        # Check if the key exists and is not empty
+        if key in data and data[key] is not None:
+            if getValue:
+                return data[key]  # Return the value if requested
+            else:
+                return True  # Return True if key exists
+        # Recursively check in nested dictionaries
+        for sub_key, sub_value in data.items():
+            if isinstance(sub_value, (dict, list)):
+                result = check_key_exists(sub_value, key, getValue)
+                if result:  # If key is found, stop further checks
+                    return result
+    elif isinstance(data, list):
+        # If it's a list, iterate through the list
+        for item in data:
+            result = check_key_exists(item, key, getValue)
+            if result:  # If key is found, stop further checks
+                return result
+    return None if getValue else False  # Return False or None if key not found
+
 
 def handle_message_with_kb_markup(msg):
     content_type,chat_type,chat_id = telepot.glance(msg)
