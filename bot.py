@@ -1,4 +1,5 @@
 import telepot
+import sqlite3
 from telepot.loop import MessageLoop
 from telepot.namedtuple import ReplyKeyboardMarkup
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
@@ -7,6 +8,7 @@ import json
 import time
 from pprint import pprint
 
+BOT_USERNAME = 'anjola_test_bot'
 
 def handle_messages(update):
     if 'message' in update:
@@ -21,19 +23,45 @@ def handle_messages(update):
                 TelegramBot.sendMessage(chat_id,"This is a private chat.")
                 
             #check if there is a new member added....
-            #this only applies to Telegram Groups,Channels arre made to keep the identities of their members safe,so my bot doesn't know
+            #this only applies to Telegram Groups,Channels are made to keep the identities of their members safe,so my bot doesn't know
             #when a person is added,remove, made or unmade an admin in a Channel.
             elif 'new_chat_member' in update['message']:
                 new_member_id = update['message']['new_chat_member']['id']
                 new_member_username = update['message']['new_chat_member'].get('username')
-                if new_member_username:
+                # check if it is the bot that was added
+                if new_member_username == BOT_USERNAME:
+                    print('Hello,I\'m a bot.I was just added')
+                # if not then,it is another member
+                elif new_member_username:
                     mention = f"[@{new_member_username}](tg://user?id={new_member_id})"
+                    print('new member added')
                 else:
                     mention = f"[thisuser](tg://user?id={new_member_id})"
-                TelegramBot.sendMessage(chat_id, f"Welcome,{mention}!.")
+                    print('new member added')
+            # if a mwember or bot leaves a group
+            elif 'left_chat_member' in update['message']:
+                left_member_id = update['message']['left_chat_member']['id']
+                left_member_username = update['message']['left_chat_member'].get('username')
+                # confirm if it was bot that was kicked out
+                if left_member_username == BOT_USERNAME:
+                    print('Bot was kicked out')
+                # if not then,it is another member
+                elif left_member_username:
+                    mention = f"[@{left_member_username}](tg://user?id={left_member_id})"
+                    print('member removed')
+                else:
+                    mention = f"[thisuser](tg://user?id={left_member_id})"
+                    print('member removed')
+            # this means group is becoming a super group and both the chat type and group id need to be update
+            elif check_key_exists(update,'migrate_to_chat_id'):
+                old_chat_id = update['message']['chat']['id']
+                new_chat_id = update['message']['migrate_to_chat_id']
+                new_chat_type = 'supergroup'
+                # do something.......
+            # elif update['message']['chat']['type'] == 'supergroup' and 
                 
-            else:
-                TelegramBot.sendMessage(chat_id, "This is not a private chat.")
+                
+                
                 
         except BotWasKickedError:
             print("Bot was kicked from the chat. Handling accordingly.")
@@ -55,10 +83,41 @@ def handle_messages(update):
     # Handle TelegramBot's  member status updates
     elif 'my_chat_member' in update:
         output(update,4)
+        # in a channel
         if update['my_chat_member']['chat']['type'] == 'channel':
-            # update = json.loads(update)
-            if  check_key_exists(update,'new_chat_member'):
-                print(check_key_exists(update,'new_chat_member',True))
+            if  check_key_exists(update,'my_chat_member'):
+                new_member_chat = check_key_exists(update,'my_chat_member',True)
+                #handle removal from group
+                if new_member_chat['old_chat_member']['status'] == 'member' and new_member_chat['new_chat_member']['status'] == 'left':
+                    print('kicked')
+                #handle becoming a member in a group
+                elif  new_member_chat['old_chat_member']['status'] == 'left' and new_member_chat['new_chat_member']['status'] == 'member' :
+                    print('member')
+                #handle becoming an admin
+                elif  new_member_chat['old_chat_member']['status'] == 'left' and new_member_chat['new_chat_member']['status'] == 'administrator':
+                    print('admin')
+                #in this case,the bot admin permissions has been changed so do something about it.
+                elif new_member_chat['old_chat_member']['status'] == 'administrator' and new_member_chat['new_chat_member']['status'] == 'administrator':
+                    print('modified permission')
+        # in a group
+        elif update['my_chat_member']['chat']['type'] == 'group':
+            output(update,4)
+            if  check_key_exists(update,'my_chat_member'):
+                new_member_chat = check_key_exists(update,'my_chat_member',True)
+                #handle removal from group
+                if new_member_chat['old_chat_member']['status'] == 'member' and new_member_chat['new_chat_member']['status'] == 'left':
+                    print('kicked')
+                #handle becoming a member in a group
+                elif  new_member_chat['old_chat_member']['status'] == 'left' and new_member_chat['new_chat_member']['status'] == 'member' :
+                    print('member')
+                #handle becoming an admin
+                elif  new_member_chat['old_chat_member']['status'] == 'left' and new_member_chat['new_chat_member']['status'] == 'administrator':
+                    print('admin')
+                #in this case,the bot admin permissions has been changed so do something about it.
+                elif new_member_chat['old_chat_member']['status'] == 'administrator' and new_member_chat['new_chat_member']['status'] == 'administrator':
+                    print('modified permission')
+        elif update['my_chat_member']['chat']['type'] == 'supergroup':
+            print('supergrrrrppppppp')
         # output(update,4)
         # TelegramBot.sendMessage(update['my_chat_member']['chat']['id'], "Bot's status has been updated.")
         #once chat member status is update.....another message is sent to the group or channel "bla bla has joined the gc....something like that"
@@ -71,13 +130,17 @@ def handle_messages(update):
         #gain access to the channel post itself
         #post may be a normal message 
         if 'text' in update['channel_post']:
-            #do something to the text...such as check for banned words etc.
-            print('text was sent')
+            #may be a reply to a channel post so we check that.
+            if 'reply_to_message' in update['channel_post']:
+                #do something to a reply to post.....
+                print('reply to text')
+            else:
+                #do something to the text...such as check for banned words etc.
+                print('text was sent')
+        # if 'photo' in update['channel_post']:
+            # handle photos....and so on like that
             
-        #may be a reply to a channel post
-        elif 'reply_to_message' in update['channel_post']:
-            #do something to a reply to post.....
-            print('reply to text')
+        
             
     else:
         # Handle other types of updates or ignore them
