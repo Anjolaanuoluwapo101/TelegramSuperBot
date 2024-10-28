@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:python project}/database/bot_management.db",
+            "name": "bot"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
