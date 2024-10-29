@@ -87,6 +87,87 @@ class BotDatabase:
                     FOREIGN KEY (chat_id) REFERENCES Users(chat_id) ON DELETE CASCADE
                 )
             ''')
+            
+            self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Messages (
+            id SERIAL PRIMARY KEY,
+		    message_id INTEGER NOT NULL UNIQUE,
+		    user_id INTEGER NOT NULL,
+    		chat_id INTEGER NOT NULL,
+  		  message_type VARCHAR(50) NOT NULL, -- e.g., 'text', 'photo', 'video', etc.
+		    content TEXT,                      -- For text messages
+		    caption TEXT,                      -- For media messages with captions
+  		  date TIMESTAMP NOT NULL            -- Message date
+			)
+            '''
+            )
+            
+            self.cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS Media (
+				    id SERIAL PRIMARY KEY,
+				    message_id INTEGER NOT NULL REFERENCES Messages(id) ON DELETE CASCADE,
+				    file_id VARCHAR(255) NOT NULL,
+				    file_unique_id VARCHAR(255) NOT NULL,
+				    file_type VARCHAR(50) NOT NULL,    -- e.g., 'photo', 'video', 'audio', etc.
+				    mime_type VARCHAR(100),
+				    file_size INTEGER,
+				    width INTEGER,
+				    height INTEGER,
+				    duration INTEGER
+				)
+				'''
+            )
+            
+            
+            self.cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS Polls (
+				    id SERIAL PRIMARY KEY,
+				    message_id INTEGER NOT NULL REFERENCES Messages(id) ON DELETE CASCADE,
+				    poll_id VARCHAR(255) NOT NULL,
+				    question TEXT NOT NULL,
+				    is_anonymous BOOLEAN NOT NULL,
+				    allows_multiple_answers BOOLEAN DEFAULT FALSE,
+				    is_quiz BOOLEAN DEFAULT FALSE,
+				    correct_option_id INTEGER
+)
+            '''
+            )
+            
+            self.cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS Contacts (
+					    id SERIAL PRIMARY KEY,
+					    message_id INTEGER NOT NULL REFERENCES Messages(id) ON DELETE CASCADE,
+					    phone_number VARCHAR(20) NOT NULL,
+					    first_name VARCHAR(100) NOT NULL,
+					    last_name VARCHAR(100),
+					    vcard TEXT                       -- Optional vCard info
+					)
+            '''
+            )
+            
+            self.cursor.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS Locations (
+				    id SERIAL PRIMARY KEY,
+				    message_id INTEGER NOT NULL REFERENCES Messages(id) ON DELETE CASCADE,
+				    latitude DOUBLE PRECISION NOT NULL,
+				    longitude DOUBLE PRECISION NOT NULL
+)
+            '''
+            )
+            
+#            self.cursor.execute(
+#            '''
+#            CREATE INDEX IF NOT EXISTS  idx_messages_message_id ON messages(message_id);
+#			CREATE INDEX IF NOT EXISTS  idx_messages_user_id ON Messages(user_id);
+#			CREATE INDEX IF NOT EXISTS  idx_messages_chat_id ON Messages(chat_id);
+#			CREATE INDEX IF NOT EXISTS  idx_media_file_id ON Media(file_id);
+#			CREATE INDEX IF NOT EXISTS  idx_polls_poll_id ON Polls(poll_id);
+#            '''
+#            )
 
             self.conn.commit()
         except  (sqlite3.Error,AttributeError) as e:
